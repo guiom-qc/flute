@@ -58,6 +58,11 @@ function strongSubdominant(note){
   const i = circle.indexOf(note);
   return circle[(i+10)%12];
 }
+function fifthOfRelative(rel){
+  const r = rel.replace("m","");
+  const i = circle.indexOf(r);
+  return circle[(i+1)%12];
+}
 
 const flutes = [
   {name:"Whistle C", key:"C"},
@@ -80,6 +85,7 @@ function analyze(){
   const k = key.value;
   const root = k.replace("m","");
   const rel = relatives[k];
+const relFifth = fifthOfRelative(rel);
   const q = fifth(root);
   const neigh = neighbors(root);
   const sub = strongSubdominant(root);
@@ -89,24 +95,37 @@ function analyze(){
     let priority = 5;
     let tags = [];
 
-    // 🥇 TONIQUE
-    if(f.key===k){
-      priority = 1;
-      tags.push("tonique");
-    }
-// 🥇 Relative majeure exacte (Am → C)
-if(k.includes("m") && froot===rel.replace("m","")){
+   // 🥇 TONIQUE = priorité max
+if(f.key===k){
   priority = 1;
+  tags.push("tonique");
+}
+
+// 🥈 Relative MAJEURE exacte
+else if(k.includes("m") && f.key===rel){
+  priority = 2;
   tags.push("relativeMaj");
+}
+
+// ⭐ Relative MINEURE (plus bas)
+else if(k.includes("m") && froot===rel.replace("m","") && f.key.includes("m")){
+  priority = Math.min(priority,4);
+  tags.push("relativeMinorColor");
 }
 
     // 🎼 LOGIQUE MINEURE
     if(k.includes("m")){
       // 🥈 Relative majeure jouable
-      if(neighbors(rel.replace("m","")).includes(froot)){
-        priority = Math.min(priority,2);
-        tags.push("relativePlayable");
-      }
+// 🥈 RelativePlayable STRONG (quinte de la relative)
+if(froot===relFifth){
+  priority = Math.min(priority,2);
+  tags.push("relativePlayable+");
+}
+// 🥉 RelativePlayable normal
+else if(neighbors(rel.replace("m","")).includes(froot)){
+  priority = Math.min(priority,3);
+  tags.push("relativePlayable");
+}
       // 🥉 Quinte
       if(froot===q){
         priority = Math.min(priority,3);
