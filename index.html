@@ -57,9 +57,12 @@ button{background:#3b82f6;color:white;font-weight:600}
 <select id="mode">
   <option value="major">Majeur</option>
   <option value="minor">Mineur</option>
-  <option value="dorian">Dorien</option>
-  <option value="mixolydian">Mixolydien</option>
 </select>
+
+<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px">
+  <input type="checkbox" id="expert" onchange="toggleExpert()">
+  Mode expert (modal)
+</label>
 
 <button onclick="analyze()">Trouver les flûtes</button>
 
@@ -225,6 +228,22 @@ function row(f,i){
     .map(t=>`<span class="badge ${tagClass(t)}">${t}</span>`)
     .join("");
   return `<div>• ${f.name} <span class="badge">${medal}</span> ${tag}</div>`;
+}
+function toggleExpert(){
+  const m = document.getElementById("mode");
+  const expert = document.getElementById("expert").checked;
+
+  // supprime options modales si déjà présentes
+  [...m.querySelectorAll(".expert")].forEach(o=>o.remove());
+
+  if(expert){
+    const dor = new Option("Dorien","dorian");
+    dor.className="expert";
+    const mix = new Option("Mixolydien","mixolydian");
+    mix.className="expert";
+    m.add(dor);
+    m.add(mix);
+  }
 }
 </script>
 </body>
