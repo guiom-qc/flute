@@ -16,12 +16,22 @@ button{background:#3b82f6;color:white;font-weight:600}
 /* 👇 badges plus compacts */
 .badge{
   display:inline-block;
-  background:#334155;
-  padding:2px 6px;        /* réduit */
+  padding:2px 6px;
   border-radius:999px;
-  font-size:10px;         /* réduit */
-  margin-left:6px
+  font-size:10px;
+  margin-left:6px;
+  color:#0f172a;
+  font-weight:600;
 }
+
+/* 🎯 Super fit */
+.fit-good{ background:#22c55e; }     /* vert */
+
+/* 👍 Fit OK */
+.fit-ok{ background:#eab308; }       /* jaune */
+
+/* ⚠️ Fit difficile */
+.fit-hard{ background:#ef4444; }     /* rouge */
 
 .gold{background:#ca8a04}
 .silver{background:#64748b}
@@ -95,7 +105,7 @@ const flutes = [
   {name:"NAF Gm", key:"Gm"},
   {name:"NAF Dm", key:"Dm"},
   {name:"NAF Em", key:"Em"},
-  {name:"NAF Eb", key:"Eb"},
+  {name:"NAF Ebm", key:"Ebm"},
   {name:"NAF Bm", key:"Bm"}
 ];
 
@@ -203,9 +213,17 @@ function analyze(){
   out.innerHTML = html;
 }
 
+function tagClass(t){
+  if(["tonique","relativeMaj","relativePlayable+"].includes(t)) return "fit-good";
+  if(["quinte","relativePlayable","voisine+"].includes(t)) return "fit-ok";
+  return "fit-hard";
+}
+
 function row(f,i){
   const medal = i===0?"🥇":i===1?"🥈":"🥉";
-  const tag = f.tags.map(t=>`<span class="badge rel">${t}</span>`).join("");
+  const tag = f.tags
+    .map(t=>`<span class="badge ${tagClass(t)}">${t}</span>`)
+    .join("");
   return `<div>• ${f.name} <span class="badge">${medal}</span> ${tag}</div>`;
 }
 </script>
