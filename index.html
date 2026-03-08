@@ -146,6 +146,11 @@ function analyze(){
       priority = 1;
       tags.push("tonique");
     }
+    // 🟢 Dominante forte (relation V)
+if(froot===fifth(root)){
+  priority = Math.min(priority,1);
+  tags.push("dominante");
+}
     // 🥈 Relative MAJEURE exacte
     else if(k.includes("m") && f.key===rel){
       priority = 2;
@@ -217,9 +222,11 @@ function analyze(){
 }
 
 function tagClass(t){
-  if(["tonique","relativeMaj","relativePlayable+"].includes(t)) return "fit-good";
-  if(["quinte","relativePlayable","voisine+"].includes(t)) return "fit-ok";
-  return "fit-hard";
+  if(["tonique","relativeMaj","relativePlayable+","dominante"].includes(t))
+    return "fit-good";   // 🟢 vert
+  if(["quinte","relativePlayable","voisine+"].includes(t))
+    return "fit-ok";     // 🟡 jaune
+  return "fit-hard";     // 🔴 rouge
 }
 
 function row(f,i){
