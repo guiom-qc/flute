@@ -12,20 +12,43 @@ select,button{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:non
 select{background:#0f172a;color:white;border:1px solid #334155}
 button{background:#3b82f6;color:white;font-weight:600}
 .result{margin-top:20px;line-height:1.6}
-.badge{display:inline-block;background:#334155;padding:4px 8px;border-radius:999px;font-size:12px;margin-left:6px}
-.gold{background:#ca8a04}.silver{background:#64748b}.bronze{background:#92400e}.rel{background:#7c3aed}
+
+/* 👇 badges plus compacts */
+.badge{
+  display:inline-block;
+  background:#334155;
+  padding:2px 6px;        /* réduit */
+  border-radius:999px;
+  font-size:10px;         /* réduit */
+  margin-left:6px
+}
+
+.gold{background:#ca8a04}
+.silver{background:#64748b}
+.bronze{background:#92400e}
+.rel{
+  background:#7c3aed;
+  transform:translateY(-1px); /* meilleur alignement */
+}
 </style>
 </head>
 <body>
 <div class="card">
 <h1>🪈 GuiOm̐ Flute Finder</h1>
 
-<label>Gamme de la musique</label>
-<select id="key">
-  <option>C</option><option>G</option><option>D</option><option>A</option><option>E</option><option>B</option>
-  <option>F#</option><option>Db</option><option>Ab</option><option>Eb</option><option>Bb</option><option>F</option>
-  <option>Am</option><option>Em</option><option>Bm</option><option>F#m</option><option>C#m</option><option>G#m</option>
-  <option>D#m</option><option>Bbm</option><option>Fm</option><option>Cm</option><option>Gm</option><option>Dm</option>
+<label>Note fondamentale</label>
+<select id="root">
+  <option>C</option><option>Db</option><option>D</option><option>Eb</option>
+  <option>E</option><option>F</option><option>F#</option><option>G</option>
+  <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+</select>
+
+<label>Mode</label>
+<select id="mode">
+  <option value="major">Majeur</option>
+  <option value="minor">Mineur</option>
+  <option value="dorian">Dorien</option>
+  <option value="mixolydian">Mixolydien</option>
 </select>
 
 <button onclick="analyze()">Trouver les flûtes</button>
@@ -82,9 +105,15 @@ const flutes = [
 ];
 
 function analyze(){
-  const k = key.value;
-  const root = k.replace("m","");
-  const rel = relatives[k];
+  const root = document.getElementById("root").value;
+const mode = document.getElementById("mode").value;
+
+let k = root;
+if(mode==="minor") k = root + "m";
+if(mode==="dorian") k = root + " dorien";
+if(mode==="mixolydian") k = root + " mixolydien";
+
+const rel = relatives[k] || "-";
 const relFifth = fifthOfRelative(rel);
   const q = fifth(root);
   const neigh = neighbors(root);
@@ -168,7 +197,7 @@ else if(neighbors(rel.replace("m","")).includes(froot)){
     return a.name.localeCompare(b.name);
   });
 
-  const best = scored.slice(0,5);
+  const best = scored.slice(0,3);
 
   let html = `
   <div><b>Tonalité :</b> ${k}</div>
