@@ -58,33 +58,28 @@ button{background:#3b82f6;color:white;font-weight:600}
 
 <script>
 const relatives = {
-"C":"Am","G":"Em","D":"Bm","A":"F#m","E":"C#m","B":"G#m","F#":"D#m","Db":"Bbm","Ab":"Fm","Eb":"Cm","Bb":"Gm","F":"Dm",
-"Am":"C","Em":"G","Bm":"D","F#m":"A","C#m":"E","G#m":"B","D#m":"F#","Bbm":"Db","Fm":"Ab","Cm":"Eb","Gm":"Bb","Dm":"F"
+  major: {
+    "C":"Am","G":"Em","D":"Bm","A":"F#m","E":"C#m","B":"G#m",
+    "F#":"D#m","Db":"Bbm","Ab":"Fm","Eb":"Cm","Bb":"Gm","F":"Dm"
+  },
+  minor: {
+    "Am":"C","Em":"G","Bm":"D","F#m":"A","C#m":"E","G#m":"B",
+    "D#m":"F#","Bbm":"Db","Fm":"Ab","Cm":"Eb","Gm":"Bb","Dm":"F",
+    "Ebm":"Gb","Abm":"Cb"
+  }
 };
 
 const circle = ["C","G","D","A","E","B","F#","Db","Ab","Eb","Bb","F"];
 
-function fifth(note){
-  const i = circle.indexOf(note);
-  return circle[(i+1+12)%12];
+function fifth(n){ return circle[(circle.indexOf(n)+1+12)%12]; }
+function neighbors(n){
+  const i=circle.indexOf(n);
+  return [circle[(i+11)%12],circle[(i+1)%12]];
 }
-
-function neighbors(note){
-  const i = circle.indexOf(note);
-  return [
-    circle[(i+11)%12],
-    circle[(i+1)%12]
-  ];
-}
-
-function strongSubdominant(note){
-  const i = circle.indexOf(note);
-  return circle[(i+10)%12];
-}
+function strongSubdominant(n){ return circle[(circle.indexOf(n)+10)%12]; }
 function fifthOfRelative(rel){
   const r = rel.replace("m","");
-  const i = circle.indexOf(r);
-  return circle[(i+1)%12];
+  return fifth(r);
 }
 
 const flutes = [
@@ -106,15 +101,24 @@ const flutes = [
 
 function analyze(){
   const root = document.getElementById("root").value;
-const mode = document.getElementById("mode").value;
+  const mode = document.getElementById("mode").value;
 
-let k = root;
-if(mode==="minor") k = root + "m";
-if(mode==="dorian") k = root + " dorien";
-if(mode==="mixolydian") k = root + " mixolydien";
+  let k = root;
+  let rel = "-";
 
-const rel = relatives[k] || "-";
-const relFifth = fifthOfRelative(rel);
+  if(mode==="major"){
+    k = root;
+    rel = relatives.major[root] || "-";
+  }
+  else if(mode==="minor"){
+    k = root + "m";
+    rel = relatives.minor[k] || "-";
+  }
+  else{
+    k = root + " " + mode;
+  }
+
+  const relFifth = rel!=="-" ? fifthOfRelative(rel) : "";
   const q = fifth(root);
   const neigh = neighbors(root);
   const sub = strongSubdominant(root);
@@ -124,66 +128,55 @@ const relFifth = fifthOfRelative(rel);
     let priority = 5;
     let tags = [];
 
-   // 🥇 TONIQUE = priorité max
-if(f.key===k){
-  priority = 1;
-  tags.push("tonique");
-}
-
-// 🥈 Relative MAJEURE exacte
-else if(k.includes("m") && f.key===rel){
-  priority = 2;
-  tags.push("relativeMaj");
-}
-
-// ⭐ Relative MINEURE (plus bas)
-else if(k.includes("m") && froot===rel.replace("m","") && f.key.includes("m")){
-  priority = Math.min(priority,4);
-  tags.push("relativeMinorColor");
-}
+    // 🥇 TONIQUE
+    if(f.key===k){
+      priority = 1;
+      tags.push("tonique");
+    }
+    // 🥈 Relative MAJEURE exacte
+    else if(k.includes("m") && f.key===rel){
+      priority = 2;
+      tags.push("relativeMaj");
+    }
+    // ⭐ Relative mineure couleur
+    else if(k.includes("m") && froot===rel.replace("m","") && f.key.includes("m")){
+      priority = Math.min(priority,4);
+      tags.push("relativeMinorColor");
+    }
 
     // 🎼 LOGIQUE MINEURE
     if(k.includes("m")){
-      // 🥈 Relative majeure jouable
-// 🥈 RelativePlayable STRONG (quinte de la relative)
-if(froot===relFifth){
-  priority = Math.min(priority,2);
-  tags.push("relativePlayable+");
-}
-// 🥉 RelativePlayable normal
-else if(neighbors(rel.replace("m","")).includes(froot)){
-  priority = Math.min(priority,3);
-  tags.push("relativePlayable");
-}
-      // 🥉 Quinte
+      if(froot===relFifth){
+        priority = Math.min(priority,2);
+        tags.push("relativePlayable+");
+      }
+      else if(rel!=="-" && neighbors(rel.replace("m","")).includes(froot)){
+        priority = Math.min(priority,3);
+        tags.push("relativePlayable");
+      }
       if(froot===q){
         priority = Math.min(priority,3);
         tags.push("quinte");
       }
     }
-
     // 🎼 LOGIQUE MAJEURE
-    else{
-      // 🥈 Quinte
+    else if(mode==="major"){
       if(froot===q){
         priority = Math.min(priority,2);
         tags.push("quinte");
       }
     }
 
-    // 🥉 Sous-dominante forte
     if(froot===sub){
       priority = Math.min(priority,3);
       tags.push("voisine+");
     }
 
-    // 🥉 Voisines
     if(neigh.includes(froot)){
       priority = Math.min(priority,3);
       tags.push("voisine");
     }
 
-    // ⭐ Relative exacte
     if(f.key===rel){
       priority = Math.min(priority,4);
       tags.push("relative");
