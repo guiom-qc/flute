@@ -78,7 +78,7 @@ const relatives = {
   minor: {
     "Am":"C","Em":"G","Bm":"D","F#m":"A","C#m":"E","G#m":"B",
     "D#m":"F#","Bbm":"Db","Fm":"Ab","Cm":"Eb","Gm":"Bb","Dm":"F",
-    "Ebm":"Gb","Abm":"Cb"
+    "Ebm":"Gb","Dbm":"E","Abm":"Cb"
   }
 };
 
@@ -111,10 +111,52 @@ const flutes = [
   {name:"NAF Ebm", key:"Ebm"},
   {name:"NAF Bm", key:"Bm"}
 ];
+const idealFlutes = [
+  {type:"Bansuri", key:"C"},
+  {type:"Bansuri", key:"D"},
+  {type:"Bansuri", key:"Eb"},
+  {type:"Bansuri", key:"E"},
+  {type:"Bansuri", key:"F"},
+  {type:"Bansuri", key:"F#"},
+  {type:"Bansuri", key:"G"},
+  {type:"Bansuri", key:"Ab"},
+  {type:"Bansuri", key:"A"},
+  {type:"Bansuri", key:"Bb"},
+  {type:"Bansuri", key:"B"},
 
+  {type:"Whistle", key:"C"},
+  {type:"Whistle", key:"D"},
+  {type:"Whistle", key:"Eb"},
+  {type:"Whistle", key:"F"},
+  {type:"Whistle", key:"G"},
+  {type:"Whistle", key:"A"},
+  {type:"Whistle", key:"Bb"},
+
+  {type:"NAF", key:"Cm"},
+  {type:"NAF", key:"Dm"},
+  {type:"NAF", key:"Em"},
+  {type:"NAF", key:"Fm"},
+  {type:"NAF", key:"Gm"},
+  {type:"NAF", key:"Am"},
+  {type:"NAF", key:"Bm"},
+  {type:"NAF", key:"Ebm"},
+  {type:"NAF", key:"Abm"}
+];
+function findIdealPurchase(key){
+  // As-tu déjà la flûte parfaite ?
+  const alreadyOwned = flutes.some(f => f.key === key);
+  if(alreadyOwned) return null;
+
+  // Cherche une flûte idéale correspondante
+  const ideal = idealFlutes.find(f => f.key === key);
+  if(!ideal) return null;
+
+  return `${ideal.type} en ${ideal.key}`;
+}
 function analyze(){
   const root = document.getElementById("root").value;
   const mode = document.getElementById("mode").value;
+  
 
   let k = root;
   let rel = "-";
@@ -209,16 +251,27 @@ if(froot===fifth(root)){
   });
 
   const best = scored.slice(0,3);
+const idealPurchase = findIdealPurchase(k);
 
   let html = `
-  <div><b>Tonalité :</b> ${k}</div>
-  <div><b>Relative :</b> ${rel}</div>
-  <hr>
-  <div><b>🥇 Meilleurs choix</b></div>
-  ${best.map((f,i)=>row(f,i)).join("")}
-  `;
+<div><b>Tonalité :</b> ${k}</div>
+<div><b>Relative :</b> ${rel}</div>
+<hr>
+<div><b>🥇 Meilleurs choix</b></div>
+${best.map((f,i)=>row(f,i)).join("")}
+`;
 
-  out.innerHTML = html;
+if(idealPurchase){
+  html += `
+  <hr>
+  <div style="font-size:13px; opacity:.85">
+    <b>💡 Idée achat</b><br>
+    • ${idealPurchase} <span class="badge gold">perfect fit</span>
+  </div>
+  `;
+}
+
+out.innerHTML = html;
 }
 
 function tagClass(t){
