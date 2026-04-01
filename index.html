@@ -330,27 +330,30 @@ function toggleNomade(){
 function renderNomadeList(){
   const list = document.getElementById("nomadeList");
 
-  // 🎯 Flûtes cochées par défaut
   const defaultSelected = [
     "Bansuri C",
-    "Bansuri B",
     "Bansuri D",
+    "Bansuri B",
     "Whistle C",
     "Whistle D",
     "Whistle A",
-    "Whistle Bb",
     "NAF Dm",
     "NAF Gm",
     "NAF Bm"
   ];
 
-  list.innerHTML = flutes.map((f,i)=>`
+  // 🔁 Charger sauvegarde si elle existe
+  const saved = JSON.parse(localStorage.getItem("nomadeFlutes") || "null");
+  const selectedSet = saved || defaultSelected;
+
+  list.innerHTML = flutes.map(f=>`
     <label style="display:block;margin:4px 0">
       <input 
         type="checkbox" 
         class="fluteCheck" 
         value="${f.name}" 
-        ${defaultSelected.includes(f.name) ? "checked" : ""}
+        ${selectedSet.includes(f.name) ? "checked" : ""}
+        onchange="saveNomadeSelection()"
       >
       ${f.name}
     </label>
@@ -365,6 +368,12 @@ function getActiveFlutes(){
     .map(el=>el.value);
 
   return flutes.filter(f => checked.includes(f.name));
+}
+function saveNomadeSelection(){
+  const selected = [...document.querySelectorAll(".fluteCheck:checked")]
+    .map(el=>el.value);
+
+  localStorage.setItem("nomadeFlutes", JSON.stringify(selected));
 }
 </script>
 </body>
