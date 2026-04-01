@@ -64,6 +64,13 @@ button{background:#3b82f6;color:white;font-weight:600}
   Mode expert (modal)
 </label>
 
+<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px">
+  <input type="checkbox" id="nomade" onchange="toggleNomade()">
+  Mode nomade
+</label>
+
+<div id="nomadeList" style="display:none; margin-top:10px; font-size:13px"></div>
+
 <button onclick="analyze()">Trouver les flûtes</button>
 
 <div class="result" id="out"></div>
@@ -131,6 +138,7 @@ const idealFlutes = [
   {type:"Whistle", key:"G"},
   {type:"Whistle", key:"A"},
   {type:"Whistle", key:"Bb"},
+  {name:"Whistle A", key:"A"},
 
   {type:"NAF", key:"Cm"},
   {type:"NAF", key:"Dm"},
@@ -178,7 +186,9 @@ function analyze(){
   const neigh = neighbors(root);
   const sub = strongSubdominant(root);
 
-  let scored = flutes.map(f=>{
+const activeFlutes = getActiveFlutes();
+
+let scored = activeFlutes.map(f=>{
     const froot = f.key.replace("m","");
     let priority = 5;
     let tags = [];
@@ -304,6 +314,57 @@ function toggleExpert(){
     m.add(dor);
     m.add(mix);
   }
+}
+function toggleNomade(){
+  const box = document.getElementById("nomade").checked;
+  const list = document.getElementById("nomadeList");
+
+  if(box){
+    list.style.display = "block";
+    renderNomadeList();
+  } else {
+    list.style.display = "none";
+  }
+}
+
+function renderNomadeList(){
+  const list = document.getElementById("nomadeList");
+
+  // 🎯 Flûtes cochées par défaut
+  const defaultSelected = [
+    "Bansuri C",
+    "Bansuri B",
+    "Bansuri D",
+    "Whistle C",
+    "Whistle D",
+    "Whistle A",
+    "Whistle Bb",
+    "NAF Dm",
+    "NAF Gm",
+    "NAF Bm"
+  ];
+
+  list.innerHTML = flutes.map((f,i)=>`
+    <label style="display:block;margin:4px 0">
+      <input 
+        type="checkbox" 
+        class="fluteCheck" 
+        value="${f.name}" 
+        ${defaultSelected.includes(f.name) ? "checked" : ""}
+      >
+      ${f.name}
+    </label>
+  `).join("");
+}
+
+function getActiveFlutes(){
+  const nomade = document.getElementById("nomade").checked;
+  if(!nomade) return flutes;
+
+  const checked = [...document.querySelectorAll(".fluteCheck:checked")]
+    .map(el=>el.value);
+
+  return flutes.filter(f => checked.includes(f.name));
 }
 </script>
 </body>
