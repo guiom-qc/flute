@@ -70,8 +70,6 @@ button{
 .fit-hard{background:#ef4444}
 
 .gold{background:#ca8a04}
-.silver{background:#64748b}
-.bronze{background:#92400e}
 
 .score{
   font-size:11px;
@@ -214,7 +212,7 @@ const idealFlutes = [
 
 
 /* =========================================================
-   NOTES / ENHARMONIQUES
+   NOTES
    ========================================================= */
 
 const chromatic = [
@@ -239,7 +237,7 @@ function noteIndex(n){
   return chromatic.indexOf(normalize(n));
 }
 
-function transpose(root, semitones){
+function transpose(root,semitones){
 
   const i = noteIndex(root);
 
@@ -252,14 +250,6 @@ function transpose(root, semitones){
 /* =========================================================
    GAMMES
    ========================================================= */
-
-/*
-   Majeur :
-   0 2 4 5 7 9 11
-
-   Mineur naturel :
-   0 2 3 5 7 8 10
-*/
 
 function majorScale(root){
 
@@ -277,214 +267,326 @@ function minorScale(root){
 
 
 /* =========================================================
-   TONALITÉ DE LA FLÛTE
-   ========================================================= */
-
-/*
-   Bansuri et Whistle :
-   on considère une gamme majeure naturelle.
-
-   NAF :
-   on considère une gamme mineure naturelle.
-*/
-
-function fluteScale(flute){
-
-  const root =
-    normalize(flute.key.replace("m",""));
-
-  if(flute.type === "NAF"){
-
-    return minorScale(root);
-
-  }
-
-  return majorScale(root);
-
-}
-
-
-/* =========================================================
-   RELATIVE
+   RELATIVES
    ========================================================= */
 
 function relativeMajor(minorRoot){
-
   return transpose(minorRoot,3);
-
 }
 
 function relativeMinor(majorRoot){
-
   return transpose(majorRoot,9);
+}
+
+
+/* =========================================================
+   POSITION DE LA TONIQUE SUR LA FLÛTE
+   ========================================================= */
+
+/*
+   Pour une flûte mélodique comme la Bansuri,
+   on ne veut pas seulement savoir si les notes
+   appartiennent à la gamme.
+
+   On veut savoir où se trouve la tonique du morceau
+   par rapport à la tonique (Sa) de la flûte.
+
+   Exemple :
+
+   Am sur Bansuri G :
+
+   G = Sa
+   A = Re   ← tonique du morceau
+   B = Ga
+   C = Ma
+   D = Pa
+   E = Dha
+   F# = Ni
+
+   La tonique A est donc en position 2,
+   ce qui est très confortable pour construire
+   des phrases autour de A.
+
+   Am sur Bansuri C :
+
+   C = Sa
+   D = Re
+   E = Ga
+   F = Ma
+   G = Pa
+   A = Dha   ← tonique du morceau
+   B = Ni
+
+   La tonique A est beaucoup plus haute.
+*/
+
+
+function tonicDegreeOnFlute(songRoot, fluteRoot){
+
+  const distance =
+    (noteIndex(songRoot) -
+     noteIndex(fluteRoot) + 12) % 12;
+
+
+  /*
+     Mapping chromatique → position approximative
+     dans le système de solfège indien.
+
+     0  = Sa
+     2  = Re
+     4  = Ga
+     5  = Ma
+     7  = Pa
+     9  = Dha
+     11 = Ni
+
+     Les altérations reçoivent une position
+     intermédiaire.
+  */
+
+  const degreeMap = {
+    0:1,
+    1:1.5,
+    2:2,
+    3:2.5,
+    4:3,
+    5:4,
+    6:4.5,
+    7:5,
+    8:5.5,
+    9:6,
+    10:6.5,
+    11:7
+  };
+
+  return degreeMap[distance];
 
 }
 
 
 /* =========================================================
-   SCORE MUSICAL
+   SCORE DE POSITION
    ========================================================= */
 
-function scoreFlute(flute, root, mode){
+function positionScore(degree){
+
+  /*
+     Zone idéale :
+
+     Re / Ga / Ma / Pa / Dha
+     ≈ positions centrales.
+
+     On pénalise surtout les extrêmes
+     Sa et Ni pour la tonique du morceau.
+
+     Le point idéal est autour de 4.
+  */
+
+  const distance =
+    Math.abs(degree - 4);
+
+
+  let score =
+    35 - distance * 5;
+
+
+  return Math.max(0,score);
+
+}
+
+
+/* =========================================================
+   SCORE DES NOTES IMPORTANTES
+   ========================================================= */
+
+function importantNotesScore(songRoot,mode,fluteRoot){
+
+  /*
+     Notes essentielles :
+
+     Tonique = 5 points
+     Tierce = 4 points
+     Quinte = 4 points
+     autres degrés = 1 point
+
+     On regarde leur position relative
+     sur la flûte.
+  */
+
+  const third =
+    mode === "major"
+      ? transpose(songRoot,4)
+      : transpose(songRoot,3);
+
+  const fifth =
+    transpose(songRoot,7);
+
+
+  const important = [
+    {note:songRoot, weight:5},
+    {note:third,    weight:4},
+    {note:fifth,    weight:4}
+  ];
+
+
+  let score = 0;
+
+
+  important.forEach(item => {
+
+    const degree =
+      tonicDegreeOnFlute(
+        item.note,
+        fluteRoot
+      );
+
+
+    /*
+       Une note importante est plus confortable
+       si elle se situe dans la zone centrale.
+    */
+
+    const comfort =
+      Math.max(
+        0,
+        1 - Math.abs(degree - 4) / 4
+      );
+
+
+    score +=
+      comfort * item.weight;
+
+  });
+
+
+  return score;
+
+}
+
+
+/* =========================================================
+   COMPATIBILITÉ DE GAMME
+   ========================================================= */
+
+function scaleCompatibility(songRoot,mode,fluteRoot){
 
   const songScale =
     mode === "major"
-      ? majorScale(root)
-      : minorScale(root);
-
-  const instrumentScale =
-    fluteScale(flute);
+      ? majorScale(songRoot)
+      : minorScale(songRoot);
 
 
-  let matchingNotes = 0;
+  const fluteMajor =
+    majorScale(fluteRoot);
+
+
+  let matches = 0;
+
 
   songScale.forEach(note => {
 
-    if(instrumentScale.includes(note)){
-      matchingNotes++;
+    if(fluteMajor.includes(note)){
+      matches++;
     }
 
   });
 
 
   /*
-     Pour une gamme à 7 notes :
+     On donne maintenant un poids relativement faible
+     à la compatibilité brute.
 
-     7/7 = toutes les notes disponibles
-     6/7 = excellent
-     5/7 = bon
-     4/7 = moyen
-     <4 = difficile
+     Pourquoi ?
+
+     Parce qu'une Bansuri peut utiliser des doigtés
+     altérés / demi-trous.
+
+     On ne veut surtout pas reproduire le problème :
+
+     C = 7/7 = 100
+     G = 6/7 = 62
+
+     alors que G peut être plus confortable.
   */
 
-  const coverage =
-    matchingNotes / songScale.length;
+  return {
+    matches,
+    total:songScale.length,
+    score:(matches / songScale.length) * 20
+  };
+
+}
 
 
-  let score =
-    coverage * 70;
+/* =========================================================
+   SCORE NAF
+   ========================================================= */
 
-
-  let reasons = [];
-
+function scoreNAF(flute,songRoot,mode){
 
   const fluteRoot =
     normalize(flute.key.replace("m",""));
 
 
-  /* =======================================================
-     CORRESPONDANCE PARFAITE
-     ======================================================= */
-
-  if(mode === "major"){
-
-    if(flute.type !== "NAF" &&
-       fluteRoot === normalize(root)){
-
-      score += 30;
-
-      reasons.push("tonique");
-
-    }
-
-  }
+  let score = 0;
+  let reasons = [];
 
 
-  if(mode === "minor"){
+  /*
+     Une NAF mineure dans sa tonalité exacte :
+     choix extrêmement naturel.
+  */
 
-    /*
-       NAF dans la tonalité mineure exacte
-    */
+  if(
+    mode === "minor" &&
+    fluteRoot === normalize(songRoot)
+  ){
 
-    if(flute.type === "NAF" &&
-       fluteRoot === normalize(root)){
+    score += 80;
 
-      score += 30;
-
-      reasons.push("tonalité mineure exacte");
-
-    }
-
-
-    /*
-       Bansuri / Whistle dans la relative majeure.
-
-       Exemple :
-       Cm → Eb
-       Am → C
-       Em → G
-
-       C'est une correspondance 7/7.
-    */
-
-    const relMajor =
-      relativeMajor(root);
-
-    if(flute.type !== "NAF" &&
-       fluteRoot === relMajor){
-
-      score += 30;
-
-      reasons.push("relative majeure");
-
-    }
+    reasons.push("tonalité mineure exacte");
 
   }
 
 
-  /* =======================================================
-     TONIQUE DE LA FLÛTE
-     ======================================================= */
+  /*
+     Même racine mais morceau majeur :
+     moins naturel pour une NAF mineure.
+  */
 
-  if(fluteRoot === normalize(root)){
+  else if(
+    mode === "major" &&
+    fluteRoot === normalize(songRoot)
+  ){
+
+    score += 40;
 
     reasons.push("fondamentale");
 
   }
 
 
-  /* =======================================================
-     TYPE DE FLÛTE
-     ======================================================= */
-
   /*
-     Léger avantage à la Bansuri pour l'improvisation
-     mélodique, sans écraser les autres possibilités.
+     Relative / voisinage.
   */
 
-  if(flute.type === "Bansuri"){
+  const rel =
+    mode === "minor"
+      ? relativeMajor(songRoot)
+      : relativeMinor(songRoot);
 
-    score += 2;
 
-  }
+  if(fluteRoot === rel){
 
+    score += 15;
 
-  /*
-     La NAF correspondant exactement au mineur
-     reste une option extrêmement forte.
-  */
-
-  if(flute.type === "NAF" &&
-     mode === "minor" &&
-     fluteRoot === normalize(root)){
-
-    score += 3;
+    reasons.push("relative");
 
   }
-
-
-  /* =======================================================
-     LIMITE
-     ======================================================= */
-
-  score =
-    Math.min(100,Math.round(score));
 
 
   return {
-    score,
-    matchingNotes,
-    totalNotes:songScale.length,
+    score:Math.min(100,Math.round(score)),
     reasons
   };
 
@@ -492,12 +594,181 @@ function scoreFlute(flute, root, mode){
 
 
 /* =========================================================
-   LABEL DU SCORE
+   SCORE BANSURI / WHISTLE
+   ========================================================= */
+
+function scoreMelodicFlute(flute,songRoot,mode){
+
+  const fluteRoot =
+    normalize(flute.key);
+
+
+  let score = 0;
+  let reasons = [];
+
+
+  /* -------------------------------------------------------
+     1. POSITION DE LA TONIQUE
+     ------------------------------------------------------- */
+
+  const tonicDegree =
+    tonicDegreeOnFlute(
+      songRoot,
+      fluteRoot
+    );
+
+
+  const posScore =
+    positionScore(tonicDegree);
+
+
+  score += posScore;
+
+
+  /*
+     Indication de confort
+  */
+
+  if(tonicDegree >= 2 && tonicDegree <= 5){
+
+    reasons.push(
+      "tonique en zone centrale"
+    );
+
+  }
+
+  else if(tonicDegree <= 1.5){
+
+    reasons.push(
+      "tonique très grave"
+    );
+
+  }
+
+  else if(tonicDegree >= 6){
+
+    reasons.push(
+      "tonique plutôt aiguë"
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     2. NOTES IMPORTANTES
+     ------------------------------------------------------- */
+
+  score +=
+    importantNotesScore(
+      songRoot,
+      mode,
+      fluteRoot
+    );
+
+
+  /* -------------------------------------------------------
+     3. COMPATIBILITÉ DE GAMME
+     ------------------------------------------------------- */
+
+  const compatibility =
+    scaleCompatibility(
+      songRoot,
+      mode,
+      fluteRoot
+    );
+
+
+  score += compatibility.score;
+
+
+  /*
+     Affichage discret du nombre de notes communes.
+  */
+
+  reasons.push(
+    `${compatibility.matches}/${compatibility.total} notes naturelles`
+  );
+
+
+  /* -------------------------------------------------------
+     4. RELATIVE MAJEURE EN MINEUR
+     ------------------------------------------------------- */
+
+  if(mode === "minor"){
+
+    const rel =
+      relativeMajor(songRoot);
+
+
+    if(fluteRoot === rel){
+
+      score += 15;
+
+      reasons.push(
+        "relative majeure"
+      );
+
+    }
+
+  }
+
+
+  /* -------------------------------------------------------
+     5. BANSURI
+     ------------------------------------------------------- */
+
+  if(flute.type === "Bansuri"){
+
+    /*
+       Petit avantage pour l'improvisation.
+    */
+
+    score += 3;
+
+  }
+
+
+  return {
+    score:Math.min(100,Math.round(score)),
+    reasons
+  };
+
+}
+
+
+/* =========================================================
+   SCORE GLOBAL
+   ========================================================= */
+
+function scoreFlute(flute,songRoot,mode){
+
+  if(flute.type === "NAF"){
+
+    return scoreNAF(
+      flute,
+      songRoot,
+      mode
+    );
+
+  }
+
+
+  return scoreMelodicFlute(
+    flute,
+    songRoot,
+    mode
+  );
+
+}
+
+
+/* =========================================================
+   LABEL
    ========================================================= */
 
 function scoreLabel(score){
 
-  if(score >= 95){
+  if(score >= 80){
 
     return {
       text:"excellent",
@@ -506,7 +777,7 @@ function scoreLabel(score){
 
   }
 
-  if(score >= 80){
+  if(score >= 65){
 
     return {
       text:"très bon",
@@ -515,7 +786,7 @@ function scoreLabel(score){
 
   }
 
-  if(score >= 65){
+  if(score >= 50){
 
     return {
       text:"bon",
@@ -525,7 +796,7 @@ function scoreLabel(score){
   }
 
   return {
-    text:"difficile",
+    text:"moins adapté",
     className:"fit-hard"
   };
 
@@ -533,22 +804,20 @@ function scoreLabel(score){
 
 
 /* =========================================================
-   INVENTAIRE / ACHAT
+   ACHAT
    ========================================================= */
 
-function sameKey(a,b){
+function findIdealPurchase(root,mode,activeFlutes){
 
-  return normalize(a) === normalize(b);
-
-}
-
-
-function findIdealPurchase(root, mode, activeFlutes){
-
-  let candidates;
+  let candidates = [];
 
 
   if(mode === "major"){
+
+    /*
+       Pour le majeur :
+       Bansuri / Whistle dans la tonique.
+    */
 
     candidates =
       idealFlutes.filter(
@@ -559,17 +828,18 @@ function findIdealPurchase(root, mode, activeFlutes){
 
   }
 
+
   else{
 
     /*
-       Pour une tonalité mineure, deux achats peuvent
-       être particulièrement intéressants :
+       Pour le mineur :
 
-       1. NAF dans la tonalité mineure
-       2. Bansuri dans la relative majeure
+       NAF dans la tonique
+       OU
+       Bansuri dans la relative majeure.
     */
 
-    const relative =
+    const rel =
       relativeMajor(root);
 
 
@@ -585,7 +855,7 @@ function findIdealPurchase(root, mode, activeFlutes){
 
         (
           f.type === "Bansuri" &&
-          sameKey(f.key,relative)
+          sameKey(f.key,rel)
         )
 
       );
@@ -593,18 +863,15 @@ function findIdealPurchase(root, mode, activeFlutes){
   }
 
 
-  /*
-     Retirer ce qui est déjà possédé.
-  */
-
   candidates =
-    candidates.filter(
-      candidate =>
-        !activeFlutes.some(
-          owned =>
-            owned.type === candidate.type &&
-            sameKey(owned.key,candidate.key)
-        )
+    candidates.filter(candidate =>
+
+      !activeFlutes.some(
+        owned =>
+          owned.type === candidate.type &&
+          sameKey(owned.key,candidate.key)
+      )
+
     );
 
 
@@ -616,6 +883,62 @@ function findIdealPurchase(root, mode, activeFlutes){
 
 
   return candidates[0];
+
+}
+
+
+function sameKey(a,b){
+
+  return normalize(a) === normalize(b);
+
+}
+
+
+/* =========================================================
+   AFFICHAGE D'UNE FLÛTE
+   ========================================================= */
+
+function row(f,i){
+
+  const medal =
+    i === 0
+      ? "🥇"
+      : i === 1
+        ? "🥈"
+        : i === 2
+          ? "🥉"
+          : "";
+
+
+  const label =
+    scoreLabel(f.score);
+
+
+  return `
+
+    <div style="margin:9px 0">
+
+      • ${f.name}
+
+      <span class="badge">
+        ${medal}
+      </span>
+
+      <span class="badge ${label.className}">
+        ${label.text}
+      </span>
+
+      <span class="score">
+        ${f.score}/100
+      </span>
+
+      <div class="reason">
+        ${f.reasons.join(" • ")}
+      </div>
+
+    </div>
+
+  `;
 
 }
 
@@ -641,7 +964,12 @@ function analyze(){
     activeFlutes.map(flute => {
 
       const result =
-        scoreFlute(flute,root,mode);
+        scoreFlute(
+          flute,
+          root,
+          mode
+        );
+
 
       return {
         ...flute,
@@ -651,24 +979,11 @@ function analyze(){
     });
 
 
-  /*
-     Tri :
-     1. score musical
-     2. nombre de notes compatibles
-     3. nom
-  */
-
   scored.sort((a,b) => {
 
     if(b.score !== a.score){
 
       return b.score - a.score;
-
-    }
-
-    if(b.matchingNotes !== a.matchingNotes){
-
-      return b.matchingNotes - a.matchingNotes;
 
     }
 
@@ -690,9 +1005,9 @@ function analyze(){
 
 
   const relative =
-    mode === "major"
-      ? relativeMinor(root)
-      : relativeMajor(root);
+    mode === "minor"
+      ? relativeMajor(root)
+      : relativeMinor(root);
 
 
   let html = `
@@ -718,9 +1033,10 @@ function analyze(){
 
   if(best.length){
 
-    html += best
-      .map((f,i) => row(f,i))
-      .join("");
+    html +=
+      best
+        .map((f,i) => row(f,i))
+        .join("");
 
   }
 
@@ -732,10 +1048,6 @@ function analyze(){
   }
 
 
-  /*
-     Suggestion d'achat
-  */
-
   if(idealPurchase){
 
     html += `
@@ -746,7 +1058,8 @@ function analyze(){
 
         <b>💡 Achat intéressant</b><br>
 
-        • ${idealPurchase.type} en ${idealPurchase.key}
+        • ${idealPurchase.type}
+        en ${idealPurchase.key}
 
         <span class="badge gold">
           complément idéal
@@ -766,61 +1079,6 @@ function analyze(){
 
 
 /* =========================================================
-   AFFICHAGE
-   ========================================================= */
-
-function row(f,i){
-
-  const medal =
-    i === 0
-      ? "🥇"
-      : i === 1
-        ? "🥈"
-        : i === 2
-          ? "🥉"
-          : "";
-
-
-  const label =
-    scoreLabel(f.score);
-
-
-  const reasons =
-    f.reasons.length
-      ? f.reasons.join(" • ")
-      : `${f.matchingNotes}/${f.totalNotes} notes de la gamme`;
-
-
-  return `
-
-    <div style="margin:8px 0">
-
-      • ${f.name}
-
-      <span class="badge">
-        ${medal}
-      </span>
-
-      <span class="badge ${label.className}">
-        ${label.text}
-      </span>
-
-      <span class="score">
-        ${f.score}/100
-      </span>
-
-      <div class="reason">
-        ${reasons}
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-
-/* =========================================================
    MODE NOMADE
    ========================================================= */
 
@@ -828,6 +1086,7 @@ function toggleNomade(){
 
   const checked =
     document.getElementById("nomade").checked;
+
 
   const list =
     document.getElementById("nomadeList");
@@ -954,7 +1213,7 @@ function getActiveFlutes(){
 
 
 /* =========================================================
-   SAUVEGARDE
+   SAUVEGARDE NOMADE
    ========================================================= */
 
 function saveNomadeSelection(){
