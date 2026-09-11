@@ -1,18 +1,58 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Flute Key Helper</title>
+
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:20px}
-.card{background:#1e293b;border-radius:16px;padding:20px;max-width:520px;margin:auto;box-shadow:0 10px 30px rgba(0,0,0,.3)}
-h1{font-size:22px;margin-top:0}
-select,button{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:none;font-size:16px}
-select{background:#0f172a;color:white;border:1px solid #334155}
-button{background:#3b82f6;color:white;font-weight:600}
-.result{margin-top:20px;line-height:1.6}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#0f172a;
+  color:#e2e8f0;
+  margin:0;
+  padding:20px
+}
+
+.card{
+  background:#1e293b;
+  border-radius:16px;
+  padding:20px;
+  max-width:520px;
+  margin:auto;
+  box-shadow:0 10px 30px rgba(0,0,0,.3)
+}
+
+h1{
+  font-size:22px;
+  margin-top:0
+}
+
+select,button{
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border-radius:12px;
+  border:none;
+  font-size:16px
+}
+
+select{
+  background:#0f172a;
+  color:white;
+  border:1px solid #334155
+}
+
+button{
+  background:#3b82f6;
+  color:white;
+  font-weight:600
+}
+
+.result{
+  margin-top:20px;
+  line-height:1.6
+}
 
 .badge{
   display:inline-block;
@@ -21,7 +61,7 @@ button{background:#3b82f6;color:white;font-weight:600}
   font-size:10px;
   margin-left:6px;
   color:#0f172a;
-  font-weight:600;
+  font-weight:600
 }
 
 .fit-good{ background:#22c55e; }
@@ -31,24 +71,39 @@ button{background:#3b82f6;color:white;font-weight:600}
 .gold{background:#ca8a04}
 .silver{background:#64748b}
 .bronze{background:#92400e}
+
 .rel{
   background:#7c3aed;
   transform:translateY(-1px);
 }
 </style>
 </head>
+
 <body>
+
 <div class="card">
+
 <h1>🪈 GuiOm̐ Flute Finder</h1>
 
 <label for="root">Note fondamentale</label>
+
 <select id="root" onchange="analyze()">
-  <option>C</option><option>Db</option><option>D</option><option>Eb</option>
-  <option>E</option><option>F</option><option>F#</option><option>G</option>
-  <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+  <option>C</option>
+  <option>Db</option>
+  <option>D</option>
+  <option>Eb</option>
+  <option>E</option>
+  <option>F</option>
+  <option>F#</option>
+  <option>G</option>
+  <option>Ab</option>
+  <option>A</option>
+  <option>Bb</option>
+  <option>B</option>
 </select>
 
 <label for="mode">Mode</label>
+
 <select id="mode" onchange="analyze()">
   <option value="major">Majeur</option>
   <option value="minor">Mineur</option>
@@ -59,62 +114,172 @@ button{background:#3b82f6;color:white;font-weight:600}
   Mode nomade
 </label>
 
-<div id="nomadeList" style="display:none; margin-top:10px; font-size:13px"></div>
+<div id="nomadeList"
+     style="display:none;margin-top:10px;font-size:13px">
+</div>
 
 <button onclick="analyze()">Trouver les flûtes</button>
 
 <div class="result" id="out"></div>
+
 </div>
 
 <script>
+
+/* =========================================================
+   RELATIVES
+   ========================================================= */
+
 const relatives = {
+
   major: {
-    "C":"Am","G":"Em","D":"Bm","A":"F#m","E":"C#m","B":"G#m",
-    "F#":"D#m","Db":"Bbm","Ab":"Fm","Eb":"Cm","Bb":"Gm","F":"Dm"
+    "C":"Am",
+    "G":"Em",
+    "D":"Bm",
+    "A":"F#m",
+    "E":"C#m",
+    "B":"G#m",
+    "F#":"D#m",
+    "Db":"Bbm",
+    "Ab":"Fm",
+    "Eb":"Cm",
+    "Bb":"Gm",
+    "F":"Dm"
   },
+
   minor: {
-    "Am":"C","Em":"G","Bm":"D","F#m":"A","C#m":"E","G#m":"B",
-    "D#m":"F#","Bbm":"Db","Fm":"Ab","Cm":"Eb","Gm":"Bb","Dm":"F",
-    "Ebm":"Gb","Dbm":"E","Abm":"Cb"
+    "Am":"C",
+    "Em":"G",
+    "Bm":"D",
+    "F#m":"A",
+    "C#m":"E",
+    "G#m":"B",
+    "D#m":"F#",
+    "Bbm":"Db",
+    "Fm":"Ab",
+    "Cm":"Eb",
+    "Gm":"Bb",
+    "Dm":"F",
+    "Ebm":"Gb",
+    "Dbm":"E",
+    "Abm":"Cb"
   }
+
 };
 
-// Équivalents enharmoniques absents du cercle (ex: Ebm → relative Gb)
-const enharmonic = {"Gb":"F#","Cb":"B","E#":"F","B#":"C","Fb":"E"};
 
-const circle = ["C","G","D","A","E","B","F#","Db","Ab","Eb","Bb","F"];
+/* =========================================================
+   ENHARMONIQUES
+   ========================================================= */
 
-function normalize(n){ return enharmonic[n] || n; }
+const enharmonic = {
+  "C#":"Db",
+  "Gb":"F#",
+  "Cb":"B",
+  "E#":"F",
+  "B#":"C",
+  "Fb":"E"
+};
+
+
+function normalize(n){
+  return enharmonic[n] || n;
+}
+
+
+/* =========================================================
+   CERCLE DES QUINTES
+   ========================================================= */
+
+const circle = [
+  "C",
+  "G",
+  "D",
+  "A",
+  "E",
+  "B",
+  "F#",
+  "Db",
+  "Ab",
+  "Eb",
+  "Bb",
+  "F"
+];
+
+
 function fifth(n){
+
   n = normalize(n);
-  return circle[(circle.indexOf(n)+1+12)%12];
+
+  const index = circle.indexOf(n);
+
+  if(index === -1) return n;
+
+  return circle[(index + 1) % 12];
 }
+
+
 function neighbors(n){
+
   n = normalize(n);
-  const i = circle.indexOf(n);
-  return [circle[(i+11)%12], circle[(i+1)%12]];
+
+  const index = circle.indexOf(n);
+
+  if(index === -1) return [];
+
+  return [
+    circle[(index + 11) % 12],
+    circle[(index + 1) % 12]
+  ];
 }
+
+
 function strongSubdominant(n){
+
   n = normalize(n);
-  return circle[(circle.indexOf(n)+10)%12];
+
+  const index = circle.indexOf(n);
+
+  if(index === -1) return n;
+
+  return circle[(index + 10) % 12];
 }
+
+
 function fifthOfRelative(rel){
+
+  if(!rel || rel === "-") return "";
+
   const r = normalize(rel.replace("m",""));
+
   return fifth(r);
 }
 
+
+/* =========================================================
+   TON INVENTAIRE RÉEL
+   ========================================================= */
+
 const flutes = [
+
+  /* Whistles */
   {name:"Whistle C",   key:"C"},
   {name:"Whistle A",   key:"A"},
   {name:"Whistle D",   key:"D"},
   {name:"Whistle Bb",  key:"Bb"},
+
+  /* Bansuris */
   {name:"Bansuri E",   key:"E"},
   {name:"Bansuri D",   key:"D"},
   {name:"Bansuri C",   key:"C"},
   {name:"Bansuri G",   key:"G"},
   {name:"Bansuri B",   key:"B"},
   {name:"Bansuri A",   key:"A"},
-  {name:"Bansuri C#",  key:"Db"},
+  {name:"Bansuri C#",  key:"C#"},
+  {name:"Bansuri Bb",  key:"Bb"},
+  {name:"Bansuri Eb",  key:"Eb"},
+
+  /* Native American Flutes */
   {name:"NAF Gm",      key:"Gm"},
   {name:"NAF Am",      key:"Am"},
   {name:"NAF Dm",      key:"Dm"},
@@ -124,7 +289,14 @@ const flutes = [
   {name:"NAF Bm",      key:"Bm"}
 ];
 
+
+/* =========================================================
+   FLÛTES THÉORIQUEMENT DISPONIBLES À L'ACHAT
+   ========================================================= */
+
 const idealFlutes = [
+
+  /* Bansuri */
   {type:"Bansuri", key:"C"},
   {type:"Bansuri", key:"D"},
   {type:"Bansuri", key:"Eb"},
@@ -137,6 +309,7 @@ const idealFlutes = [
   {type:"Bansuri", key:"Bb"},
   {type:"Bansuri", key:"B"},
 
+  /* Whistle */
   {type:"Whistle", key:"C"},
   {type:"Whistle", key:"D"},
   {type:"Whistle", key:"Eb"},
@@ -145,6 +318,7 @@ const idealFlutes = [
   {type:"Whistle", key:"A"},
   {type:"Whistle", key:"Bb"},
 
+  /* Native American Flute */
   {type:"NAF", key:"Cm"},
   {type:"NAF", key:"Dm"},
   {type:"NAF", key:"Em"},
@@ -156,207 +330,628 @@ const idealFlutes = [
   {type:"NAF", key:"Abm"}
 ];
 
+
+/* =========================================================
+   VÉRIFIER SI UNE FLÛTE EST DÉJÀ POSSÉDÉE
+   ========================================================= */
+
+function fluteKeysMatch(a,b){
+
+  return normalize(a) === normalize(b);
+
+}
+
+
 function findIdealPurchase(key, activeFlutes){
-  const alreadyOwned = activeFlutes.some(f => f.key === key);
+
+  const alreadyOwned = activeFlutes.some(
+    f => fluteKeysMatch(f.key, key)
+  );
+
   if(alreadyOwned) return null;
 
-  const ideal = idealFlutes.find(f => f.key === key);
+
+  const ideal = idealFlutes.find(
+    f => fluteKeysMatch(f.key, key)
+  );
+
   if(!ideal) return null;
 
+
   return `${ideal.type} en ${ideal.key}`;
+
 }
+
+
+/* =========================================================
+   ANALYSE PRINCIPALE
+   ========================================================= */
 
 function analyze(){
-  const root = document.getElementById("root").value;
-  const mode = document.getElementById("mode").value;
 
-  let k, rel;
+  const root =
+    document.getElementById("root").value;
+
+  const mode =
+    document.getElementById("mode").value;
+
+
+  let k;
+  let rel;
+
+
+  /* -------------------------
+     TONALITÉ MAJEURE
+     ------------------------- */
 
   if(mode === "major"){
+
     k = root;
-    rel = relatives.major[root] || "-";
-  } else {
-    k = root + "m";
-    rel = relatives.minor[k] || "-";
+
+    rel =
+      relatives.major[root] || "-";
+
   }
 
-  const relFifth = rel !== "-" ? fifthOfRelative(rel) : "";
-  const q = fifth(root);
-  const neigh = neighbors(root);
-  const sub = strongSubdominant(root);
 
-  const activeFlutes = getActiveFlutes();
+  /* -------------------------
+     TONALITÉ MINEURE
+     ------------------------- */
+
+  else{
+
+    k = root + "m";
+
+    rel =
+      relatives.minor[k] || "-";
+
+  }
+
+
+  const relFifth =
+    rel !== "-"
+      ? fifthOfRelative(rel)
+      : "";
+
+
+  const q =
+    fifth(root);
+
+
+  const neigh =
+    neighbors(root);
+
+
+  const sub =
+    strongSubdominant(root);
+
+
+  const activeFlutes =
+    getActiveFlutes();
+
+
+  /* =======================================================
+     SCORE DES FLÛTES
+     ======================================================= */
 
   let scored = activeFlutes.map(f => {
-    const froot = f.key.replace("m","");
+
+    const froot =
+      normalize(f.key.replace("m",""));
+
+
     let priority = 5;
+
     let tags = [];
 
-    // 🥇 TONIQUE
-    if(f.key === k){
+
+    /* 🥇 TONIQUE */
+
+    if(fluteKeysMatch(f.key, k)){
+
       priority = 1;
+
       tags.push("tonique");
-    }
-    // 🟢 Dominante forte (relation V)
-    if(froot === fifth(root)){
-      priority = Math.min(priority, 3);
-      tags.push("dominante");
-    }
-    // 🥈 Relative MAJEURE exacte
-    else if(mode === "minor" && f.key === rel){
-      priority = 2;
-      tags.push("relativeMaj");
-    }
-    // ⭐ Relative mineure couleur
-    else if(mode === "minor" && froot === normalize(rel.replace("m","")) && f.key.includes("m")){
-      priority = Math.min(priority, 4);
-      tags.push("relativeMinorColor");
+
     }
 
-    // 🎼 LOGIQUE MINEURE
+
+    /* 🟢 DOMINANTE */
+
+    if(froot === fifth(root)){
+
+      priority =
+        Math.min(priority,3);
+
+      tags.push("dominante");
+
+    }
+
+
+    /* 🥈 RELATIVE MAJEURE EXACTE */
+
+    else if(
+      mode === "minor" &&
+      fluteKeysMatch(f.key, rel)
+    ){
+
+      priority = 2;
+
+      tags.push("relativeMaj");
+
+    }
+
+
+    /* ⭐ RELATIVE MINEURE COULEUR */
+
+    else if(
+      mode === "minor" &&
+      froot === normalize(rel.replace("m","")) &&
+      f.key.includes("m")
+    ){
+
+      priority =
+        Math.min(priority,4);
+
+      tags.push("relativeMinorColor");
+
+    }
+
+
+    /* ===================================================
+       LOGIQUE MINEURE
+       =================================================== */
+
     if(mode === "minor"){
+
+      /* Quinte de la relative */
+
       if(froot === relFifth){
-        priority = Math.min(priority, 2);
+
+        priority =
+          Math.min(priority,2);
+
         tags.push("relativePlayable+");
-      } else if(rel !== "-" && neighbors(normalize(rel.replace("m",""))).includes(froot)){
-        priority = Math.min(priority, 3);
+
+      }
+
+      /* Voisines de la relative */
+
+      else if(
+        rel !== "-" &&
+        neighbors(
+          normalize(rel.replace("m",""))
+        ).includes(froot)
+      ){
+
+        priority =
+          Math.min(priority,3);
+
         tags.push("relativePlayable");
+
       }
+
+
+      /* Quinte de la tonalité */
+
       if(froot === q){
-        priority = Math.min(priority, 3);
+
+        priority =
+          Math.min(priority,3);
+
         tags.push("quinte");
+
       }
+
     }
-    // 🎼 LOGIQUE MAJEURE
-    else {
+
+
+    /* ===================================================
+       LOGIQUE MAJEURE
+       =================================================== */
+
+    else{
+
       if(froot === q){
-        priority = Math.min(priority, 2);
+
+        priority =
+          Math.min(priority,2);
+
         tags.push("quinte");
+
       }
+
     }
+
+
+    /* ===================================================
+       SOUS-DOMINANTE FORTE
+       =================================================== */
 
     if(froot === sub){
-      priority = Math.min(priority, 3);
+
+      priority =
+        Math.min(priority,3);
+
       tags.push("voisine+");
+
     }
+
+
+    /* ===================================================
+       VOISINES
+       =================================================== */
 
     if(neigh.includes(froot)){
-      priority = Math.min(priority, 3);
+
+      priority =
+        Math.min(priority,3);
+
       tags.push("voisine");
+
     }
 
-    if(f.key === rel){
-      priority = Math.min(priority, 4);
+
+    /* ===================================================
+       RELATIVE
+       =================================================== */
+
+    if(fluteKeysMatch(f.key, rel)){
+
+      priority =
+        Math.min(priority,4);
+
       tags.push("relative");
+
     }
 
-    return {...f, priority, tags};
+
+    return {
+      ...f,
+      priority,
+      tags
+    };
+
   });
 
-  scored.sort((a, b) => {
-    if(a.priority !== b.priority) return a.priority - b.priority;
+
+  /* =======================================================
+     TRI
+     ======================================================= */
+
+  scored.sort((a,b) => {
+
+    if(a.priority !== b.priority){
+
+      return a.priority - b.priority;
+
+    }
+
     return a.name.localeCompare(b.name);
+
   });
 
-  const best = scored.slice(0, 3);
-  const idealPurchase = findIdealPurchase(k, activeFlutes);
+
+  /* =======================================================
+     TOP 3
+     ======================================================= */
+
+  const best =
+    scored.slice(0,3);
+
+
+  /* =======================================================
+     IDÉE D'ACHAT
+     ======================================================= */
+
+  const idealPurchase =
+    findIdealPurchase(
+      k,
+      activeFlutes
+    );
+
+
+  /* =======================================================
+     AFFICHAGE
+     ======================================================= */
 
   let html = `
-<div><b>Tonalité :</b> ${k}</div>
-<div><b>Relative :</b> ${rel}</div>
-<hr>
-<div><b>🥇 Meilleurs choix</b></div>
-${best.map((f, i) => row(f, i)).join("")}
-`;
+
+    <div>
+      <b>Tonalité :</b> ${k}
+    </div>
+
+    <div>
+      <b>Relative :</b> ${rel}
+    </div>
+
+    <hr>
+
+    <div>
+      <b>🥇 Meilleurs choix</b>
+    </div>
+
+    ${
+      best.length
+        ? best.map((f,i) => row(f,i)).join("")
+        : "<div>Aucune flûte sélectionnée.</div>"
+    }
+
+  `;
+
+
+  /* =======================================================
+     SUGGESTION D'ACHAT
+     ======================================================= */
 
   if(idealPurchase){
+
     html += `
-<hr>
-<div style="font-size:13px; opacity:.85">
-  <b>💡 Idée achat</b><br>
-  • ${idealPurchase} <span class="badge gold">perfect fit</span>
-</div>
-`;
+
+      <hr>
+
+      <div style="font-size:13px;opacity:.85">
+
+        <b>💡 Idée achat</b><br>
+
+        • ${idealPurchase}
+
+        <span class="badge gold">
+          perfect fit
+        </span>
+
+      </div>
+
+    `;
+
   }
 
-  out.innerHTML = html;
+
+  document.getElementById("out").innerHTML =
+    html;
+
 }
+
+
+/* =========================================================
+   COULEUR DES TAGS
+   ========================================================= */
 
 function tagClass(t){
-  if(["tonique","relativeMaj","relativePlayable+","dominante"].includes(t))
+
+  if([
+    "tonique",
+    "relativeMaj",
+    "relativePlayable+",
+    "dominante"
+  ].includes(t)){
+
     return "fit-good";
-  if(["quinte","relativePlayable","voisine+"].includes(t))
+
+  }
+
+
+  if([
+    "quinte",
+    "relativePlayable",
+    "voisine+"
+  ].includes(t)){
+
     return "fit-ok";
+
+  }
+
+
   return "fit-hard";
+
 }
 
-function row(f, i){
-  const medal = i===0?"🥇":i===1?"🥈":"🥉";
-  const tag = f.tags
-    .map(t => `<span class="badge ${tagClass(t)}">${t}</span>`)
-    .join("");
-  return `<div>• ${f.name} <span class="badge">${medal}</span> ${tag}</div>`;
+
+/* =========================================================
+   AFFICHAGE D'UNE FLÛTE
+   ========================================================= */
+
+function row(f,i){
+
+  const medal =
+    i === 0
+      ? "🥇"
+      : i === 1
+        ? "🥈"
+        : "🥉";
+
+
+  const tag =
+    f.tags
+      .map(t =>
+        `<span class="badge ${tagClass(t)}">${t}</span>`
+      )
+      .join("");
+
+
+  return `
+    <div>
+      • ${f.name}
+      <span class="badge">${medal}</span>
+      ${tag}
+    </div>
+  `;
+
 }
+
+
+/* =========================================================
+   MODE NOMADE
+   ========================================================= */
 
 function toggleNomade(){
-  const box = document.getElementById("nomade").checked;
-  const list = document.getElementById("nomadeList");
+
+  const box =
+    document.getElementById("nomade").checked;
+
+
+  const list =
+    document.getElementById("nomadeList");
+
 
   if(box){
+
     list.style.display = "block";
+
     renderNomadeList();
-  } else {
-    list.style.display = "none";
+
   }
+
+  else{
+
+    list.style.display = "none";
+
+  }
+
 }
 
+
+/* =========================================================
+   LISTE NOMADE
+   ========================================================= */
+
 function renderNomadeList(){
-  const list = document.getElementById("nomadeList");
+
+  const list =
+    document.getElementById("nomadeList");
+
+
+  /*
+     Sélection par défaut pour un jam
+     avec un arsenal relativement compact.
+  */
 
   const defaultSelected = [
+
     "Bansuri C",
     "Bansuri D",
+    "Bansuri G",
     "Bansuri B",
+    "Bansuri A",
+    "Bansuri Bb",
+    "Bansuri Eb",
+
     "Whistle C",
     "Whistle D",
+
     "NAF Dm",
     "NAF Gm",
     "NAF Bm"
+
   ];
 
-  const saved = JSON.parse(localStorage.getItem("nomadeFlutes") || "null");
-  const selectedSet = saved || defaultSelected;
+
+  const saved =
+    JSON.parse(
+      localStorage.getItem("nomadeFlutes") || "null"
+    );
+
+
+  const selectedSet =
+    saved || defaultSelected;
+
 
   list.innerHTML = flutes.map(f => `
-    <label style="display:block;margin:4px 0">
+
+    <label
+      style="display:block;margin:4px 0"
+    >
+
       <input
         type="checkbox"
         class="fluteCheck"
         value="${f.name}"
-        ${selectedSet.includes(f.name) ? "checked" : ""}
+        ${
+          selectedSet.includes(f.name)
+            ? "checked"
+            : ""
+        }
         onchange="saveNomadeSelection()"
       >
+
       ${f.name}
+
     </label>
+
   `).join("");
+
 }
+
+
+/* =========================================================
+   FLÛTES ACTIVES
+   ========================================================= */
 
 function getActiveFlutes(){
-  const nomade = document.getElementById("nomade").checked;
-  if(!nomade) return flutes;
 
-  const checked = [...document.querySelectorAll(".fluteCheck:checked")]
-    .map(el => el.value);
+  const nomade =
+    document.getElementById("nomade").checked;
 
-  return flutes.filter(f => checked.includes(f.name));
+
+  /* Arsenal complet */
+
+  if(!nomade){
+
+    return flutes;
+
+  }
+
+
+  /* Arsenal nomade */
+
+  const checked =
+    [
+      ...document.querySelectorAll(
+        ".fluteCheck:checked"
+      )
+    ].map(
+      el => el.value
+    );
+
+
+  return flutes.filter(
+    f => checked.includes(f.name)
+  );
+
 }
+
+
+/* =========================================================
+   SAUVEGARDE DU MODE NOMADE
+   ========================================================= */
 
 function saveNomadeSelection(){
-  const selected = [...document.querySelectorAll(".fluteCheck:checked")]
-    .map(el => el.value);
 
-  localStorage.setItem("nomadeFlutes", JSON.stringify(selected));
+  const selected =
+    [
+      ...document.querySelectorAll(
+        ".fluteCheck:checked"
+      )
+    ].map(
+      el => el.value
+    );
+
+
+  localStorage.setItem(
+    "nomadeFlutes",
+    JSON.stringify(selected)
+  );
+
 }
+
+
+/* =========================================================
+   INITIALISATION
+   ========================================================= */
+
+analyze();
+
 </script>
+
 </body>
 </html>
